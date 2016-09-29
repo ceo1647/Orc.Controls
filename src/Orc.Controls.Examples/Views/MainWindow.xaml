@@ -179,6 +179,10 @@
         <TabItem Header="TimeSpan">
             <views:TimeSpan />
         </TabItem>
+               
+        <TabItem Header="ValidationContextControl">
+            <views:ValidationContextView />
+        </TabItem>
 
         <TabItem Header="WatermarkTextBox">
             <views:Watermark />

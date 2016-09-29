@@ -245,6 +245,11 @@ namespace Orc.Controls
                     if (vm.IsValidLogEntry(logEntry))
                     {
                         var document = LogRecordsRichTextBox.Document;
+                        if (document == null)
+                        {
+                            return;
+                        }
+
                         var lastLogMessage = (DateTime) document.Tag;
 
                         if (logEntry.Time < lastLogMessage)
@@ -419,7 +424,7 @@ namespace Orc.Controls
         public void CopyToClipboard()
         {
             var text = LogRecordsRichTextBox.GetInlineText();
-            Clipboard.SetText(text);
+            Clipboard.SetDataObject(text);
         }
         #endregion
 

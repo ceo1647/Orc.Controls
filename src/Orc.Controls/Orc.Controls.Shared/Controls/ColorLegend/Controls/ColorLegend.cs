@@ -1,6 +1,6 @@
 ﻿// --------------------------------------------------------------------------------------------------------------------
-// <copyright file="ExtendColorLegend.cs" company="WildGums">
-//   Copyright (c) 2008 - 2015 WildGums. All rights reserved.
+// <copyright file="ColorLegend.cs" company="WildGums">
+//   Copyright (c) 2008 - 2016 WildGums. All rights reserved.
 // </copyright>
 // --------------------------------------------------------------------------------------------------------------------
 
@@ -9,7 +9,6 @@ namespace Orc.Controls
 {
     using System;
     using System.Collections.Generic;
-    using System.Collections.ObjectModel;
     using System.ComponentModel;
     using System.Linq;
     using System.Text.RegularExpressions;
@@ -20,17 +19,25 @@ namespace Orc.Controls
     using System.Windows.Media;
     using Catel.Data;
     using Catel.MVVM;
+    using Catel.Windows;
 
     /// <summary>
     /// Control to show color legend with checkboxes for each color.
     /// </summary>
-    [TemplatePart(Name = "PART_List", Type = typeof(ListBox))]
-    [TemplatePart(Name = "PART_Popup_Color_Board", Type = typeof(Popup))]
-    [TemplatePart(Name = "PART_UnselectAll", Type = typeof(ButtonBase))]
-    [TemplatePart(Name = "PART_All_Visible", Type = typeof(CheckBox))]
-    [TemplatePart(Name = "PART_Settings_Button", Type = typeof(DropDownButton))]
+    [TemplatePart(Name = "PART_List", Type = typeof (ListBox))]
+    [TemplatePart(Name = "PART_Popup_Color_Board", Type = typeof (Popup))]
+    [TemplatePart(Name = "PART_UnselectAll", Type = typeof (ButtonBase))]
+    [TemplatePart(Name = "PART_All_Visible", Type = typeof (CheckBox))]
+    [TemplatePart(Name = "PART_Settings_Button", Type = typeof (DropDownButton))]
     public class ColorLegend : HeaderedContentControl
     {
+        #region Events
+        /// <summary>
+        /// Selection changed event.
+        /// </summary>
+        public event EventHandler<EventArgs> SelectionChanged;
+        #endregion
+
         #region Fields
         private ColorBoard _colorBoard;
 
@@ -42,7 +49,7 @@ namespace Orc.Controls
 
         private CheckBox _checkBox;
 
-        private IColorProvider _currentColorProvider;
+        private IColorLegendItem _currentColorLegendItem;
 
         private bool _manualBindingReady;
 
@@ -54,24 +61,46 @@ namespace Orc.Controls
         #endregion
 
         #region Constructors
+        static ColorLegend()
+        {
+            DefaultStyleKeyProperty.OverrideMetadata(typeof (ColorLegend), new FrameworkPropertyMetadata(typeof (ColorLegend)));
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="ColorLegend" /> class.
         /// </summary>
         public ColorLegend()
         {
-            DefaultStyleKey = typeof(ColorLegend);
-
             ChangeColor = new Command<object>(OnChangeColorExecute, OnChangeColorCanExecute);
         }
         #endregion
 
         #region Properties
         /// <summary>
+<<<<<<< HEAD
+=======
+        /// Gets or sets the operation color attribute.
+        /// </summary>
+        [ObsoleteEx(Message = "No longer required, legend now respects the Header property", TreatAsErrorFromVersion = "1.3", RemoveInVersion = "2.0")]
+        public string OperationColorAttribute
+        {
+            get { return (string) GetValue(OperationColorAttributeProperty); }
+            set { SetValue(OperationColorAttributeProperty, value); }
+        }
+
+        /// <summary>
+        /// The operation color attribute property.
+        /// </summary>
+        public static readonly DependencyProperty OperationColorAttributeProperty = DependencyProperty.Register("OperationColorAttribute",
+            typeof (string), typeof (ColorLegend), new PropertyMetadata(string.Empty));
+
+        /// <summary>
+>>>>>>> origin/develop
         /// Gets or sets a value indicating whether color can be edited or not.
         /// </summary>
         public bool AllowColorEditing
         {
-            get { return (bool)GetValue(AllowColorEditingProperty); }
+            get { return (bool) GetValue(AllowColorEditingProperty); }
             set { SetValue(AllowColorEditingProperty, value); }
         }
 
@@ -79,15 +108,14 @@ namespace Orc.Controls
         /// Property indicating whether color can be edited or not
         /// </summary>
         public static readonly DependencyProperty AllowColorEditingProperty = DependencyProperty.Register("AllowColorEditing",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(true, (sender, e) => ((ColorLegend)sender).OnAllowColorEditingChanged()));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(true, (sender, e) => ((ColorLegend) sender).OnAllowColorEditingChanged()));
 
         /// <summary>
         /// Gets or sets a value indicating whether search box is shown or not.
         /// </summary>
         public bool ShowSearchBox
         {
-            get { return (bool)GetValue(ShowSearchBoxProperty); }
+            get { return (bool) GetValue(ShowSearchBoxProperty); }
             set { SetValue(ShowSearchBoxProperty, value); }
         }
 
@@ -95,15 +123,14 @@ namespace Orc.Controls
         /// Property indicating whether search box is shown or not.
         /// </summary>
         public static readonly DependencyProperty ShowSearchBoxProperty = DependencyProperty.Register("ShowSearchBox",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(true));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(true));
 
         /// <summary>
         /// Gets or sets a value indicating whether tool box is shown or not.
         /// </summary>
         public bool ShowToolBox
         {
-            get { return (bool)GetValue(ShowToolBoxProperty); }
+            get { return (bool) GetValue(ShowToolBoxProperty); }
             set { SetValue(ShowToolBoxProperty, value); }
         }
 
@@ -111,15 +138,14 @@ namespace Orc.Controls
         /// Property indicating whethertop toolbox is shown or not.
         /// </summary>
         public static readonly DependencyProperty ShowToolBoxProperty = DependencyProperty.Register("ShowToolBox",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(true));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(true));
 
         /// <summary>
         /// Gets or sets a value indicating whether tool box is shown or not.
         /// </summary>
         public bool ShowBottomToolBox
         {
-            get { return (bool)GetValue(ShowBottomToolBoxProperty); }
+            get { return (bool) GetValue(ShowBottomToolBoxProperty); }
             set { SetValue(ShowBottomToolBoxProperty, value); }
         }
 
@@ -127,15 +153,14 @@ namespace Orc.Controls
         /// Property indicating whether bottom tool box is shown or not.
         /// </summary>
         public static readonly DependencyProperty ShowBottomToolBoxProperty = DependencyProperty.Register("ShowBottomToolBox",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(true));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(true));
 
         /// <summary>
         /// Gets or sets a value indicating whether settings button is shown or not.
         /// </summary>
         public bool ShowSettings
         {
-            get { return (bool)GetValue(ShowSettingsProperty); }
+            get { return (bool) GetValue(ShowSettingsProperty); }
             set { SetValue(ShowSettingsProperty, value); }
         }
 
@@ -143,15 +168,14 @@ namespace Orc.Controls
         /// Property indicating whether search box is shown or not.
         /// </summary>
         public static readonly DependencyProperty ShowSettingsProperty = DependencyProperty.Register("ShowSettingsBox",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(true));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(true));
 
         /// <summary>
         /// Gets or sets a value indicating whether settings button is shown or not.
         /// </summary>
         public bool ShowColorVisibilityControls
         {
-            get { return (bool)GetValue(ShowColorVisibilityControlsProperty); }
+            get { return (bool) GetValue(ShowColorVisibilityControlsProperty); }
             set { SetValue(ShowColorVisibilityControlsProperty, value); }
         }
 
@@ -159,15 +183,14 @@ namespace Orc.Controls
         /// Property indicating whether search box is shown or not.
         /// </summary>
         public static readonly DependencyProperty ShowColorVisibilityControlsProperty = DependencyProperty.Register("ShowColorVisibilityControls",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(true, (sender, e) => ((ColorLegend)sender).OnShowColorVisibilityControlsChanged()));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(true, (sender, e) => ((ColorLegend) sender).OnShowColorVisibilityControlsChanged()));
 
         /// <summary>
         /// Gets or sets a value indicating whether user editing current color.
         /// </summary>
         public bool IsColorSelecting
         {
-            get { return (bool)GetValue(IsColorSelectingProperty); }
+            get { return (bool) GetValue(IsColorSelectingProperty); }
             set { SetValue(IsColorSelectingProperty, value); }
         }
 
@@ -175,15 +198,14 @@ namespace Orc.Controls
         /// The is drop down open property.
         /// </summary>
         public static readonly DependencyProperty IsColorSelectingProperty = DependencyProperty.Register("IsColorSelecting",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(false, (sender, e) => ((ColorLegend)sender).OnIsColorSelectingPropertyChanged()));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(false, (sender, e) => ((ColorLegend) sender).OnIsColorSelectingPropertyChanged()));
 
         /// <summary>
         /// Gets or sets a value indicating whether regex is used when search is performed.
         /// </summary>
         public bool UseRegexFiltering
         {
-            get { return (bool)GetValue(UseRegexFilteringProperty); }
+            get { return (bool) GetValue(UseRegexFilteringProperty); }
             set { SetValue(UseRegexFilteringProperty, value); }
         }
 
@@ -191,31 +213,29 @@ namespace Orc.Controls
         /// Property indicating whether search is performing using regex or not.
         /// </summary>
         public static readonly DependencyProperty UseRegexFilteringProperty = DependencyProperty.Register("UseRegexFiltering",
-            typeof(bool), typeof(ColorLegend), new PropertyMetadata(true));
-
+            typeof (bool), typeof (ColorLegend), new PropertyMetadata(true));
 
         /// <summary>
         /// Gets or sets a value indicating whether user editing current color.
         /// </summary>
         public Color EditingColor
         {
-            get { return (Color)GetValue(EditingColorProperty); }
+            get { return (Color) GetValue(EditingColorProperty); }
             set { SetValue(EditingColorProperty, value); }
         }
 
         /// <summary>
         /// The current color property.
         /// </summary>
-        public static readonly DependencyProperty EditingColorProperty = DependencyProperty.Register("EditingColor", typeof(Color),
-            typeof(ColorLegend), new PropertyMetadata(Colors.White, (sender, e) => ((ColorLegend)sender).OnEditingColorChanged()));
-
+        public static readonly DependencyProperty EditingColorProperty = DependencyProperty.Register("EditingColor", typeof (Color),
+            typeof (ColorLegend), new PropertyMetadata(Colors.White, (sender, e) => ((ColorLegend) sender).OnEditingColorChanged()));
 
         /// <summary>
         /// Gets or sets filter for list of color.
         /// </summary>
         public string Filter
         {
-            get { return (string)GetValue(FilterProperty); }
+            get { return (string) GetValue(FilterProperty); }
             set { SetValue(FilterProperty, value); }
         }
 
@@ -223,15 +243,14 @@ namespace Orc.Controls
         /// Expose filter property.
         /// </summary>
         public static readonly DependencyProperty FilterProperty = DependencyProperty.Register("Filter",
-            typeof(string), typeof(ColorLegend), new PropertyMetadata(null, (sender, e) => ((ColorLegend)sender).OnFilterChanged()));
-
+            typeof (string), typeof (ColorLegend), new PropertyMetadata(null, (sender, e) => ((ColorLegend) sender).OnFilterChanged()));
 
         /// <summary>
         /// Gets or sets source for color items.
         /// </summary>
-        public IEnumerable<IColorProvider> ItemsSource
+        public IEnumerable<IColorLegendItem> ItemsSource
         {
-            get { return (IEnumerable<IColorProvider>)GetValue(ItemsSourceProperty); }
+            get { return (IEnumerable<IColorLegendItem>) GetValue(ItemsSourceProperty); }
             set { SetValue(ItemsSourceProperty, value); }
         }
 
@@ -239,15 +258,15 @@ namespace Orc.Controls
         /// Property for colors list.
         /// </summary>
         public static readonly DependencyProperty ItemsSourceProperty = DependencyProperty.Register("ItemsSource",
-            typeof(IEnumerable<IColorProvider>), typeof(ColorLegend), new FrameworkPropertyMetadata(null,
-                (sender, e) => ((ColorLegend)sender).OnItemsSourceChanged(e.OldValue as IEnumerable<IColorProvider>, e.NewValue as IEnumerable<IColorProvider>)));
+            typeof (IEnumerable<IColorLegendItem>), typeof (ColorLegend), new FrameworkPropertyMetadata(null,
+                (sender, e) => ((ColorLegend) sender).OnItemsSourceChanged(e.OldValue as IEnumerable<IColorLegendItem>, e.NewValue as IEnumerable<IColorLegendItem>)));
 
         /// <summary>
         /// Gets or sets a value indicating whether is all visible.
         /// </summary>
         public bool? IsAllVisible
         {
-            get { return (bool?)GetValue(IsAllVisibleProperty); }
+            get { return (bool?) GetValue(IsAllVisibleProperty); }
             set { SetValue(IsAllVisibleProperty, value); }
         }
 
@@ -255,14 +274,14 @@ namespace Orc.Controls
         /// The is all visible property.
         /// </summary>
         public static readonly DependencyProperty IsAllVisibleProperty = DependencyProperty.Register("IsAllVisible",
-            typeof(bool?), typeof(ColorLegend), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, (sender, e) => ((ColorLegend)sender).OnIsAllVisibleChanged()));
+            typeof (bool?), typeof (ColorLegend), new FrameworkPropertyMetadata(null, FrameworkPropertyMetadataOptions.BindsTwoWayByDefault, (sender, e) => ((ColorLegend) sender).OnIsAllVisibleChanged()));
 
         /// <summary>
         /// Gets or sets a source for color items respecting current filter value.
         /// </summary>
-        public IEnumerable<IColorProvider> FilteredItemsSource
+        public IEnumerable<IColorLegendItem> FilteredItemsSource
         {
-            get { return (IEnumerable<IColorProvider>)GetValue(FilteredItemsSourceProperty); }
+            get { return (IEnumerable<IColorLegendItem>) GetValue(FilteredItemsSourceProperty); }
             set { SetValue(FilteredItemsSourceProperty, value); }
         }
 
@@ -270,15 +289,14 @@ namespace Orc.Controls
         /// Property for colors list.
         /// </summary>
         public static readonly DependencyProperty FilteredItemsSourceProperty = DependencyProperty.Register("FilteredItemsSource",
-            typeof(IEnumerable<IColorProvider>), typeof(ColorLegend), new PropertyMetadata(null));
-
+            typeof (IEnumerable<IColorLegendItem>), typeof (ColorLegend), new PropertyMetadata(null));
 
         /// <summary>
         /// Gets or sets the filtered items ids.
         /// </summary>
         public IEnumerable<string> FilteredItemsIds
         {
-            get { return (IEnumerable<string>)GetValue(FilteredItemsIdsProperty); }
+            get { return (IEnumerable<string>) GetValue(FilteredItemsIdsProperty); }
             set { SetValue(FilteredItemsIdsProperty, value); }
         }
 
@@ -286,15 +304,14 @@ namespace Orc.Controls
         /// Property to store all visible now ids.
         /// </summary>
         public static readonly DependencyProperty FilteredItemsIdsProperty = DependencyProperty.Register("FilteredItemsIds",
-            typeof(IEnumerable<string>), typeof(ColorLegend), new PropertyMetadata(null));
-
+            typeof (IEnumerable<string>), typeof (ColorLegend), new PropertyMetadata(null));
 
         /// <summary>
         /// Gets or sets filter watermark string we use in search textbox.
         /// </summary>
         public string FilterWatermark
         {
-            get { return (string)GetValue(FilterWatermarkProperty); }
+            get { return (string) GetValue(FilterWatermarkProperty); }
             set { SetValue(FilterWatermarkProperty, value); }
         }
 
@@ -302,15 +319,14 @@ namespace Orc.Controls
         /// Property for filter watermark.
         /// </summary>
         public static readonly DependencyProperty FilterWatermarkProperty = DependencyProperty.Register("FilterWatermark",
-            typeof(string), typeof(ColorLegend), new PropertyMetadata("Search"));
-
+            typeof (string), typeof (ColorLegend), new PropertyMetadata("Search"));
 
         /// <summary>
         /// Gets or sets list of selected items.
         /// </summary>
-        public IEnumerable<IColorProvider> SelectedColorItems
+        public IEnumerable<IColorLegendItem> SelectedColorItems
         {
-            get { return (IEnumerable<IColorProvider>)GetValue(SelectedColorItemsProperty); }
+            get { return (IEnumerable<IColorLegendItem>) GetValue(SelectedColorItemsProperty); }
             set { SetValue(SelectedColorItemsProperty, value); }
         }
 
@@ -318,16 +334,16 @@ namespace Orc.Controls
         /// The selected items property.
         /// </summary>
         public static readonly DependencyProperty SelectedColorItemsProperty = DependencyProperty.RegisterAttached("SelectedColorItems",
-            typeof(IEnumerable<IColorProvider>), typeof(ColorLegend), new PropertyMetadata(null, (sender, e) => ((ColorLegend)sender).OnSelectedColorItemsChanged()));
+            typeof (IEnumerable<IColorLegendItem>), typeof (ColorLegend), new PropertyMetadata(null, (sender, e) => ((ColorLegend) sender).OnSelectedColorItemsChanged()));
 
         public Brush AccentColorBrush
         {
-            get { return (Brush)GetValue(AccentColorBrushProperty); }
+            get { return (Brush) GetValue(AccentColorBrushProperty); }
             set { SetValue(AccentColorBrushProperty, value); }
         }
 
-        public static readonly DependencyProperty AccentColorBrushProperty = DependencyProperty.Register("AccentColorBrush", typeof(Brush),
-            typeof(ColorLegend), new FrameworkPropertyMetadata(Brushes.LightGray, (sender, e) => ((ColorLegend)sender).OnAccentColorBrushChanged()));
+        public static readonly DependencyProperty AccentColorBrushProperty = DependencyProperty.Register("AccentColorBrush", typeof (Brush),
+            typeof (ColorLegend), new FrameworkPropertyMetadata(Brushes.LightGray, (sender, e) => ((ColorLegend) sender).OnAccentColorBrushChanged()));
         #endregion
 
         #region Commands
@@ -335,8 +351,8 @@ namespace Orc.Controls
 
         private bool OnChangeColorCanExecute(object parameter)
         {
-            var values = (object[])parameter;
-            var colorProvider = (IColorProvider)values[1];
+            var values = (object[]) parameter;
+            var colorProvider = (IColorLegendItem) values[1];
 
             if (colorProvider == null)
             {
@@ -353,28 +369,21 @@ namespace Orc.Controls
 
         private void OnChangeColorExecute(object parameter)
         {
-            var parameterValues = (object[])parameter;
+            var parameterValues = (object[]) parameter;
 
             var currentButton = parameterValues[0];
-            var colorProvider = (IColorProvider)parameterValues[1];
+            var colorLegendItem = (IColorLegendItem) parameterValues[1];
 
-            _currentColorProvider = colorProvider;
-            _popup.PlacementTarget = (Button)currentButton;
+            _currentColorLegendItem = colorLegendItem;
+            _popup.PlacementTarget = (Button) currentButton;
 
-            _previousColor = EditingColor = colorProvider.Color;
+            _previousColor = EditingColor = colorLegendItem.Color;
             IsColorSelecting = true;
         }
         #endregion
 
-        #region Events
-        /// <summary>
-        /// Selection changed event.
-        /// </summary>
-        public event EventHandler<EventArgs> SelectionChanged;
-        #endregion
-
         #region Methods
-        private void OnItemsSourceChanged(IEnumerable<IColorProvider> oldValue, IEnumerable<IColorProvider> newValue)
+        private void OnItemsSourceChanged(IEnumerable<IColorLegendItem> oldValue, IEnumerable<IColorLegendItem> newValue)
         {
             if (_changeNotificationWrapper != null)
             {
@@ -397,7 +406,7 @@ namespace Orc.Controls
 
         private void OnColorProviderPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            if (e.HasPropertyChanged("IsVisible"))
+            if (e.HasPropertyChanged("IsChecked"))
             {
                 UpdateIsAllVisible();
             }
@@ -415,7 +424,7 @@ namespace Orc.Controls
             {
                 foreach (var filteredItem in filteredItems)
                 {
-                    if (filteredItem.IsVisible)
+                    if (filteredItem.IsChecked)
                     {
                         allUnchecked = false;
                     }
@@ -426,7 +435,7 @@ namespace Orc.Controls
                 }
             }
 
-            IsAllVisible = (allChecked ? true : allUnchecked ? false : (bool?)null);
+            IsAllVisible = (allChecked ? true : allUnchecked ? false : (bool?) null);
 
             _isUpdatingAllVisible = false;
         }
@@ -451,7 +460,7 @@ namespace Orc.Controls
             {
                 foreach (var filteredItem in filteredItems)
                 {
-                    filteredItem.IsVisible = isAllVisible.Value;
+                    filteredItem.IsChecked = isAllVisible.Value;
                 }
             }
         }
@@ -473,10 +482,10 @@ namespace Orc.Controls
 
         private void OnEditingColorChanged()
         {
-            var currentColorProvider = _currentColorProvider;
-            if (currentColorProvider != null)
+            var currentColorLegendItem = _currentColorLegendItem;
+            if (currentColorLegendItem != null)
             {
-                currentColorProvider.Color = (Color)EditingColor;
+                currentColorLegendItem.Color = EditingColor;
             }
         }
 
@@ -496,37 +505,40 @@ namespace Orc.Controls
 
             AccentColorBrush = TryFindResource("AccentColorBrush") as SolidColorBrush;
 
-            _listBox = (ListBox)GetTemplateChild("PART_List");
-            _popup = (Popup)GetTemplateChild("PART_Popup_Color_Board");
-            _button = (ButtonBase)GetTemplateChild("PART_UnselectAll");
-            _checkBox = (CheckBox)GetTemplateChild("PART_All_Visible");
+            _listBox = (ListBox) GetTemplateChild("PART_List");
+            _popup = (Popup) GetTemplateChild("PART_Popup_Color_Board");
+            _button = (ButtonBase) GetTemplateChild("PART_UnselectAll");
+            _checkBox = (CheckBox) GetTemplateChild("PART_All_Visible");
 
-            var settingsButton = (DropDownButton)GetTemplateChild("PART_Settings_Button");
+            var settingsButton = (DropDownButton) GetTemplateChild("PART_Settings_Button");
             if (settingsButton != null)
             {
                 settingsButton.ContentLayoutUpdated += (sender, args) =>
+                {
+                    if (_manualBindingReady)
                     {
-                        if (_manualBindingReady)
+                        return;
+                    }
+
+                    var settingsContent = sender as ContentControl;
+                    if(settingsContent != null)
+                    {
+                        var contentPresenter = settingsContent.FindVisualDescendantByType<ContentPresenter>();
+                        if (contentPresenter == null)
                         {
                             return;
                         }
 
-                        if (sender is ContentControl)
+                        var content = contentPresenter.Content;
+                        if (content == null)
                         {
-                            var settingsContent = sender as ContentControl;
-                            ContentPresenter contentPresenter = FindVisualChild<ContentPresenter>(settingsContent);
-                            if (contentPresenter == null)
-                            {
-                                return;
-                            }
+                            return;
+                        }
 
-                            var content = contentPresenter.Content;
-                            if (content == null)
-                            {
-                                return;
-                            }
-
-                            var qryAllChecks = (content as DependencyObject).Descendents().OfType<CheckBox>();
+                        var dependencyObject = content as DependencyObject;
+                        if (dependencyObject != null)
+                        {
+                            var qryAllChecks = dependencyObject.Descendents().OfType<CheckBox>();
 
                             var allChecks = qryAllChecks as CheckBox[] ?? qryAllChecks.ToArray();
                             var cbVisibilitySetting = allChecks.First(cb => cb.Name == "cbVisibilitySetting");
@@ -552,10 +564,11 @@ namespace Orc.Controls
                                 cbUseRegexSetting.Checked += (o, e) => UseRegexFiltering = true;
                                 cbUseRegexSetting.Unchecked += (o, e) => UseRegexFiltering = false;
                             }
-
-                            _manualBindingReady = true;
                         }
-                    };
+
+                        _manualBindingReady = true;
+                    }
+                };
             }
 
             if (_listBox != null)
@@ -645,85 +658,48 @@ namespace Orc.Controls
             }
         }
 
-        public IEnumerable<IColorProvider> GetSelectedList()
+        public IEnumerable<IColorLegendItem> GetSelectedList()
         {
-            var result = new ObservableCollection<IColorProvider>();
-
-            foreach (object item in _listBox.SelectedItems)
-            {
-                result.Add(item as IColorProvider);
-            }
-
-            return result;
+            return from object item in _listBox.SelectedItems select item as IColorLegendItem;
         }
 
-        public void SetSelectedList(IEnumerable<IColorProvider> selectedList)
+        private bool _settingSelectedList;
+
+        public void SetSelectedList(IEnumerable<IColorLegendItem> selectedList)
         {
-            if (_listBox == null || selectedList == null)
+            if (_listBox == null || selectedList == null || _settingSelectedList)
             {
                 return;
             }
 
-            var colorProviders = selectedList as IList<IColorProvider> ?? selectedList.ToList();
-            if (AreCollectionsTheSame(GetSelectedList(), colorProviders))
-            {
-                return;
-            }
+            _settingSelectedList = true;
 
-            _listBox.SelectedItems.Clear();
-            if (colorProviders != null)
+            try
             {
-                foreach (var colorProvider in colorProviders)
+                var colorLegendItems = selectedList as IList<IColorLegendItem> ?? selectedList.ToList();
+
+                _listBox.SelectedItems.Clear();
+                var itemsSource = ItemsSource;
+                if (itemsSource == null)
                 {
-                    _listBox.SelectedItems.Add(colorProvider);
-                }
-            }
-        }
-
-        // TODO: Replace by catel methods
-        private bool AreCollectionsTheSame(IEnumerable<IColorProvider> collection1, IEnumerable<IColorProvider> collection2)
-        {
-            if ((collection1 == null) || (collection2 == null))
-            {
-                return collection1 == collection2;
-            }
-
-            var list1 = collection1.ToList();
-            var list2 = collection2.ToList();
-
-            if (list1.Count() != list2.Count())
-            {
-                return false;
-            }
-
-            if (list1.Any(colorProvider => list2.All(cp => cp.Id != colorProvider.Id)))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        // TODO: Replace by catel methods
-        private TChildItem FindVisualChild<TChildItem>(DependencyObject obj)
-                where TChildItem : DependencyObject
-        {
-            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
-            {
-                DependencyObject child = VisualTreeHelper.GetChild(obj, i);
-                if (child is TChildItem)
-                {
-                    return (TChildItem)child;
+                    return;
                 }
 
-                TChildItem childOfChild = FindVisualChild<TChildItem>(child);
-                if (childOfChild != null)
+                foreach (var legendItem in itemsSource)
                 {
-                    return childOfChild;
+                    legendItem.IsSelected = false;
+                }
+
+                foreach (var legendItem in colorLegendItems)
+                {
+                    legendItem.IsSelected = true;
+                    _listBox.SelectedItems.Add(legendItem);
                 }
             }
-
-            return null;
+            finally
+            {
+                _settingSelectedList = false;
+            }
         }
 
         private string ConstructWildcardRegex(string pattern)
@@ -735,10 +711,10 @@ namespace Orc.Controls
             return "(?i)^" + Regex.Escape(pattern).Replace(@"\*", ".*").Replace(@"\?", ".") + "$";
         }
 
-        protected IEnumerable<IColorProvider> GetFilteredItems()
+        protected IEnumerable<IColorLegendItem> GetFilteredItems()
         {
-            var items = (IEnumerable<IColorProvider>)GetValue(ItemsSourceProperty);
-            var filter = (string)GetValue(FilterProperty);
+            var items = (IEnumerable<IColorLegendItem>) GetValue(ItemsSourceProperty);
+            var filter = (string) GetValue(FilterProperty);
 
             if ((items == null) || string.IsNullOrEmpty(filter))
             {
@@ -773,7 +749,7 @@ namespace Orc.Controls
             var solidColorBrush = AccentColorBrush as SolidColorBrush;
             if (solidColorBrush != null)
             {
-                var accentColor = ((SolidColorBrush)AccentColorBrush).Color;
+                var accentColor = ((SolidColorBrush) AccentColorBrush).Color;
                 accentColor.CreateAccentColorResourceDictionary("ColorLegend");
             }
         }

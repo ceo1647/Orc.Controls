@@ -39,7 +39,6 @@ namespace Orc.Controls.ViewModels
 
         private bool _hasInitializedFirstLogListener;
         private bool _isClearingLog;
-        private bool _isUpdatingTypes;
 
         private readonly object _lock = new object();
         #endregion
@@ -83,7 +82,8 @@ namespace Orc.Controls.ViewModels
             // Note: we need to dispatch because the FastObservableCollection automatically dispatches (which is a good thing
             // when coming from a background thread). However... the ReplaceRange will be executed *outside* the lock
             // which is not good. So the lock is inside the dispatcher handler, and we manually dispatcher here.
-            _dispatcherService.BeginInvoke(() =>
+            // Note: don't use BeginInvoke here because we need to wait until action will be processed
+            _dispatcherService.Invoke(() =>
             {
                 lock (_lock)
                 {
@@ -94,14 +94,10 @@ namespace Orc.Controls.ViewModels
                         var typeNames = TypeNames;
                         if (typeNames != null)
                         {
-                            _isUpdatingTypes = true;
-
                             using (typeNames.SuspendChangeNotifications())
                             {
-                                typeNames.ReplaceRange(new[] { defaultComboBoxItem });
+                                ((ICollection<string>)typeNames).ReplaceRange(new[] { defaultComboBoxItem });
                             }
-
-                            _isUpdatingTypes = false;
                         }
                     }
                 }
@@ -109,7 +105,7 @@ namespace Orc.Controls.ViewModels
                 ResetEntriesCount();
 
                 _isClearingLog = false;
-            });
+            }, false);
         }
 
         private void ResetEntriesCount()
@@ -209,7 +205,9 @@ namespace Orc.Controls.ViewModels
             {
                 _logListener = _logViewerLogListener;
 
-                AddLogEntries(_logViewerLogListener.GetLogEntries(), true);
+                _dispatcherService.Invoke(() =>
+                    AddLogEntries(_logViewerLogListener.GetLogEntries(), true),
+                    true);
             }
             else
             {
@@ -365,6 +363,9 @@ namespace Orc.Controls.ViewModels
 
             lock (_lock)
             {
+                var typeNames = TypeNames;
+                var requireSorting = false;
+
                 LeanAndMeanModel = true;
 
                 using (_logEntries.SuspendChangeNotifications())
@@ -373,27 +374,31 @@ namespace Orc.Controls.ViewModels
                     {
                         _logEntries.Add(entry);
 
-                        if (!_isUpdatingTypes)
+                        if (!typeNames.Contains(entry.Log.TargetType.Name))
                         {
-                            var typeNames = TypeNames;
-                            if (!typeNames.Contains(entry.Log.TargetType.Name))
+                            try
                             {
-                                _isUpdatingTypes = true;
+                                typeNames.Add(entry.Log.TargetType.Name);
 
-                                try
-                                {
-                                    typeNames.Add(entry.Log.TargetType.Name);
-                                }
-                                catch (Exception)
-                                {
-                                    // we don't have time for this, let it go...
-                                }
-
-                                _isUpdatingTypes = false;
+                                requireSorting = true;
+                            }
+                            catch (Exception)
+                            {
+                                // we don't have time for this, let it go...
                             }
                         }
 
                         UpdateEntriesCount(entry);
+                    }
+                }
+
+                if (requireSorting)
+                {
+                    using (typeNames.SuspendChangeNotifications())
+                    {
+                        typeNames.Sort();
+                        typeNames.Remove(defaultComboBoxItem);
+                        typeNames.Insert(0, defaultComboBoxItem);
                     }
                 }
 
@@ -412,7 +417,7 @@ namespace Orc.Controls.ViewModels
                 logEntry.Data["ThreadId"] = ThreadHelper.GetCurrentThreadId();
             }
 
-            AddLogEntries(new[] { logEntry });
+            _dispatcherService.BeginInvoke(() => AddLogEntries(new[] { logEntry }), true);
         }
         #endregion
     }

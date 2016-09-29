@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 ﻿/// <summary>
 /// Used by the ModuleInit. All code inside the Initialize method is ran as soon as the assembly is loaded.
 /// </summary>
@@ -11,3 +12,6 @@ public static class ModuleInitializer
 		//do smthing
     }
 }
+=======
+﻿// Empty by design so it will never be overwritten by an update
+>>>>>>> origin/develop
